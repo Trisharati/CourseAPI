@@ -1,7 +1,8 @@
 const teacherModel = require('../models/teacherModel')
 const courseModel = require('../models/courseModel')
 const studentModel = require('../models/studentModel')
-const middleware = require('../service/middleware')
+const requestModel = require('../models/requestModel')
+
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 const mongoose= require('mongoose')
@@ -74,17 +75,95 @@ await courseModel(courseObj).save()
     }
 }
 
-
+const viewReqByTeacher = async(req,res)=>{
+    let isTeacherExist = await teacherModel.findOne({_id:new mongoose.Types.ObjectId(req.user._id)})
+    if(isTeacherExist){
+    await requestModel.aggregate([
+        {
+            $match:{
+                teacherId:new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{
+                from:'students',
+                localField:'studentId',
+                foreignField:'_id',
+                pipeline:[
+                    {
+                        $project:{
+                            __v:0,
+                            createdOn:0,
+                            _id:0,
+                            token:0,
+                            isDeleted:0
+                        }
+                    }
+                ],
+                as:'RequestSentBy'
+            }
+        },
+        {
+            $lookup:{
+                from:'courses',
+                localField:'courseId',
+                foreignField:'_id',
+                pipeline:[
+                    {
+                        $project:{
+                            __v:0,
+                            createdOn:0,
+                            _id:0,
+                            teacherId:0,
+                            isDeleted:0
+                        }
+                    }
+                ],
+                as:'courseDetails'
+            }
+        },
+        {
+            $project:{
+                __v:0,
+                _id:0,
+                createdOn:0,
+                teacherId:0,
+                studentId:0,
+                courseId:0,
+                isDeleted:0
+            }
+        }
+    ]).then((data)=>{
+        res.status(200).json({message:'You have received following requests',data:data})
+    }).catch((err)=>{
+        res.status(400).json({message:'Unable to show requests received',Error:err})
+    })
+}
+else{
+    res.status(400).json({message:'Teacher does not exist'})
+}
+    
+    }
 
 const acceptReq = async(req,res)=>{
-    let isTeacherExist=await teacherModel.findOne({_id:new mongoose.Types.ObjectId(req.params.id)})
+    let isTeacherExist=await teacherModel.findOne({_id:new mongoose.Types.ObjectId(req.user._id)})
+    
     if(isTeacherExist){
         if(isTeacherExist.isReqReceived){
+            
             res.status(200).json({message:'Enrollment request accepted'})
             await studentModel.findOneAndUpdate({_id:new mongoose.Types.ObjectId(req.body.studentId)},
             {
                 $set:{
-                    isEnrolled:true
+                    isEnrolled:true,
+                    courseId:new mongoose.Types.ObjectId(req.body.courseId)
+                }
+            })
+            
+            await requestModel.findOneAndUpdate({studentId:new mongoose.Types.ObjectId(req.body.studentId),
+                courseId:new mongoose.Types.ObjectId(req.body.courseId)},{
+                $set:{
+                isAccepted:true
                 }
             })
         }
@@ -113,4 +192,154 @@ const rejectReq = async(req,res)=>{
 }
 
 
-module.exports = {teacherReg,getTokenData,teacherlogin,addCourseByTeacher,acceptReq,rejectReq}
+// const viewEnrolledStudByTeacher = async(req,res)=>{
+    
+//     await requestModel.aggregate([
+//         {
+//             $match:{
+//                 teacherId:new mongoose.Types.ObjectId(req.user._id),
+//                 isAccepted:true
+//             }
+//         },
+        
+//         {
+//             $lookup:{
+
+//                 from:'students',
+//                 localField:'studentId',
+//                 foreignField:'_id',
+//                 pipeline:[
+//                     {
+//                         $match:{
+//                             isEnrolled:true
+//                         }
+//                     },
+//                     {
+//                         $lookup:{
+//                             from:'courses',
+//                             localField:'courseId',
+//                             foreignField:'_id',
+//                             pipeline:[
+                                                    
+//                                 {
+//                                     $project:{
+//                                         __v:0,
+//                                         createdOn:0,
+//                                         _id:0,
+//                                         isDeleted:0,
+//                                         teacherId:0
+//                                     }
+//                                 },
+//                             ],
+//                             as:'courseDetails'
+//                         }
+//                     },
+//                     {
+//                         $unwind:"$courseDetails"                        
+//                     },
+//                     {
+//                         $project:{
+//                             __v:0,
+//                             createdOn:0,
+//                             _id:0,
+//                             isDeleted:0,
+//                             token:0
+//                         }
+//                     }
+//                 ],
+//                 as:'studentDetails'
+//             }
+//         },
+//         // {
+//         //   $addFields:{
+//         //     totalstudents:{
+//         //         $sum:1
+//         //     }
+//         //   }  
+//         // },
+//         {
+//             $project:{
+//                     // totalstudents:1,
+//                     __v:0,
+//                     createdOn:0,
+//                     _id:0,
+//                     isDeleted:0,
+//                     teacherId:0,
+//                     studentId:0,
+//                     courseId:0,
+//                     isAccepted:0
+                    
+//             }
+//         }
+//     ]).then((data)=>{
+//         res.status(200).json({message:'students details corresponding to couse enrolled',data:data})
+//     }).catch((err)=>{
+//         res.status(400).json({Error:err})
+//         console.log('Error: ',err)
+//     })
+// }
+const viewEnrolledStudByTeacher = async(req,res)=>{
+    await requestModel.aggregate([
+        {
+            $match:{
+                teacherId:new mongoose.Types.ObjectId(req.user._id),
+                isAccepted:true
+            }
+        },
+        {
+            $lookup:{
+                from:'courses',
+                localField:'courseId',
+                foreignField:'_id',
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:'students',
+                            localField:'studentId',
+                            foreignField:'_id',
+                            as:'studentDetails'
+                        }
+                    },
+                    {
+                        $unwind:"$studentDetails"
+                    },
+                    {
+                        $project:{
+                                __v:0,
+                                createdOn:0,
+                                _id:0,
+                                isDeleted:0        
+                                    }
+                    },
+                ],
+                as:'courseDetails'
+            }
+        },
+        {
+                        $project:{
+                                // totalstudents:1,
+                                __v:0,
+                                createdOn:0,
+                                _id:0,
+                                isDeleted:0,
+                                teacherId:0,
+                                studentId:0,
+                                courseId:0,
+                                isAccepted:0
+                                
+                        }
+                    }
+    ]).then((data)=>{
+                res.status(200).json({message:'students details corresponding to couse enrolled',data:data})
+            }).catch((err)=>{
+                res.status(400).json({Error:err})
+                console.log('Error: ',err)
+            })
+}
+
+
+
+
+
+module.exports = {teacherReg,getTokenData,teacherlogin,addCourseByTeacher,acceptReq,rejectReq,
+                    viewReqByTeacher,viewEnrolledStudByTeacher}

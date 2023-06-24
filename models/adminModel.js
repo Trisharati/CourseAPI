@@ -22,7 +22,7 @@ const adminSchema = mongoose.Schema({
     isDeleted:{
         type:Boolean,
         default:false
-    },
+    }
 })
 
 module.exports = new mongoose.model('Admin',adminSchema)

@@ -18,10 +18,18 @@ router.get('/viewcourse',studentController.viewCourse)
 router.use(middleware)
 
 router.get('/viewstudents',adminController.viewStudents)
-router.post('/addcoursebyteacher',teacherController.addCourseByTeacher)
-router.post('/acceptreq/:id',teacherController.acceptReq)
-router.post('/rejectreq/:id',teacherController.rejectReq)
 router.post('/addcoursebyadmin',adminController.addCourseByAdmin)
-router.post('/enrollcourse/:id',studentController.enrollCourse)
+
+
+
+router.post('/addcoursebyteacher',teacherController.addCourseByTeacher)
+router.get('/viewreqbyteacher',teacherController.viewReqByTeacher)
+router.post('/acceptreq',teacherController.acceptReq)
+router.post('/rejectreq/:id',teacherController.rejectReq)
+router.get('/viewenrolledstudbyteacher',teacherController.viewEnrolledStudByTeacher)
+
+
+
+router.post('/enrollcourse',studentController.enrollCourse)
 
 module.exports = router

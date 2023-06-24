@@ -1,6 +1,8 @@
 const studentModel = require('../models/studentModel')
 const courseModel = require('../models/courseModel')
 const teacherModel = require('../models/teacherModel')
+const requestModel = require('../models/requestModel')
+
 
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
@@ -72,9 +74,19 @@ const viewCourse = async(req,res)=>{
 }
 
 const enrollCourse = async(req,res)=>{
-    let isStudentExist = await studentModel.findOne({_id: new mongoose.Types.ObjectId(req.params.id)})
+    let isStudentExist = await studentModel.findOne({_id: new mongoose.Types.ObjectId(req.user._id)})
     
     if(isStudentExist){
+        const reqObj = {
+            ...req.body,
+            studentId:req.user._id,
+            createdOn:new Date()
+        }
+        await requestModel(reqObj).save().then((data)=>{
+            res.status(200).json({message:'request model updated',data:data})
+        }).catch((err)=>{
+            res.status(400).json({message:'Unable to update request model'})
+        })
         await teacherModel.findOneAndUpdate({_id: new mongoose.Types.ObjectId(req.body.teacherId)},
         {
             $set:{
@@ -93,10 +105,6 @@ const enrollCourse = async(req,res)=>{
         res.status(400).json({message:'Student does not exist'})
     }
 }
-
-
-
-
 
 
 

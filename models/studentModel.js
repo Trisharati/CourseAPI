@@ -29,6 +29,9 @@ const studentSchema = mongoose.Schema({
         type:Boolean,
         default:false
     },
+    courseId:{
+        type:mongoose.Schema.Types.ObjectId
+    },
     token:{
         type:String
     },
