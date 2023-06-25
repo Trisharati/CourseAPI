@@ -295,8 +295,8 @@ const viewEnrolledStudByTeacher = async(req,res)=>{
                     {
                         $lookup:{
                             from:'students',
-                            localField:'studentId',
-                            foreignField:'_id',
+                            localField:'_id',
+                            foreignField:'courseId',
                             as:'studentDetails'
                         }
                     },
