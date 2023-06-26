@@ -27,6 +27,7 @@ router.get('/viewreqbyteacher',teacherController.viewReqByTeacher)
 router.post('/acceptreq',teacherController.acceptReq)
 router.post('/rejectreq/:id',teacherController.rejectReq)
 router.get('/viewenrolledstudbyteacher',teacherController.viewEnrolledStudByTeacher)
+router.get('/view',teacherController.view)
 
 
 
